@@ -57,7 +57,8 @@ typedef struct tag_hiddenNode {
 
 // 单个样本
 typedef struct tag_sample {
-    vector<double> in, out;
+    vector<double> in;  //样本输入
+    vector<double> out; //样本输出
 } sample;
 
 // BP神经网络

@@ -12,11 +12,9 @@ BpNet::BpNet()
     error = 100.f;                      // error初始值，极大值即可
 
     // 初始化输入层
-    for (int i = 0; i < innode; i++)
-    {
+    for (int i = 0; i < innode; i++) {
         inputLayer[i] = new inputNode();
-        for (int j = 0; j < hidenode; j++)
-        {
+        for (int j = 0; j < hidenode; j++) {
             inputLayer[i]->weight.push_back(get_11Random());
             inputLayer[i]->wDeltaSum.push_back(0.f);
         }
@@ -25,12 +23,10 @@ BpNet::BpNet()
     // 初始化隐藏层
     for (int i = 0; i < hidelayer; i++) {
         if (i == hidelayer - 1) {
-            for (int j = 0; j < hidenode; j++)
-            {
+            for (int j = 0; j < hidenode; j++) {
                 hiddenLayer[i][j] = new hiddenNode();
                 hiddenLayer[i][j]->bias = get_11Random();
-                for (int k = 0; k < outnode; k++)
-                {
+                for (int k = 0; k < outnode; k++) {
                     hiddenLayer[i][j]->weight.push_back(get_11Random());
                     hiddenLayer[i][j]->wDeltaSum.push_back(0.f);
                 }
