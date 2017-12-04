@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/zhongchangming/dev/dev_t/ann/ann-bp/demo02/BpNet.cpp
+BpNet.h
+/Users/zhongchangming/dev/dev_t/ann/ann-bp/demo02/BpNet.h
+
+/Users/zhongchangming/dev/dev_t/ann/ann-bp/demo02/BpNet.h
+iostream
+-
+cmath
+-
+vector
+-
+stdlib.h
+-
+time.h
+-
+
+/Users/zhongchangming/dev/dev_t/ann/ann-bp/demo02/main.cpp
+BpNet.h
+/Users/zhongchangming/dev/dev_t/ann/ann-bp/demo02/BpNet.h
+
