@@ -94,6 +94,7 @@ void BpNet::forwardPropagationEpoc() {
 
 // outputLayer -> hiddenLayer -> inputLayer
 // 算得： delta
+// 更新：DeltaSum, error
 void BpNet::backPropagationEpoc()
 {
     // backward propagation on 【output layer】
@@ -170,30 +171,64 @@ void BpNet::backPropagationEpoc()
     }
 }
 
+
+void BpNet::update(int sampleNum) {
+    // backward propagation on 【input】 layer
+    // -- update weight
+    for (int i = 0; i < innode; i++) {
+        for (int j = 0; j < hidenode; j++) {
+            inputLayer[i]->weight[j] -= learningRate * inputLayer[i]->wDeltaSum[j] / sampleNum;
+        }
+    }
+
+    // backward propagation on 【hidden】 layer
+    // -- update weight & bias
+    for (int i = 0; i < hidelayer; i++) {
+        if (i == hidelayer - 1) {
+            for (int j = 0; j < hidenode; j++) {
+                // bias
+                hiddenLayer[i][j]->bias -= learningRate * hiddenLayer[i][j]->bDeltaSum / sampleNum;
+
+                // weight
+                for (int k = 0; k < outnode; k++) {
+                    hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum;
+                }
+            }
+        } else {
+            for (int j = 0; j < hidenode; j++) {
+                // bias
+                hiddenLayer[i][j]->bias -= learningRate * hiddenLayer[i][j]->bDeltaSum / sampleNum;
+
+                // weight
+                for (int k = 0; k < hidenode; k++) {
+                    hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum;
+                }
+            }
+        }
+    }
+
+    // backward propagation on 【output】 layer
+    // -- update bias
+    for (int i = 0; i < outnode; i++) {
+        outputLayer[i]->bias -= learningRate * outputLayer[i]->bDeltaSum / sampleNum;
+    }
+}
+
+// 更新：weight, bias
+// forward -> back -> update
 void BpNet::training( vector<sample> sampleGroup, double threshold)
 {
     int sampleNum = sampleGroup.size();
 
-    while(error > threshold)
-        //for (int curTrainingTime = 0; curTrainingTime < trainingTime; curTrainingTime++)
-    {
+    //for (int curTrainingTime = 0; curTrainingTime < trainingTime; curTrainingTime++)
+    while(error > threshold) {
         cout << "training error: " << error << endl;
-        error = 0.f;
-        // initialize delta sum
-        for (int i = 0; i < innode; i++) {
-            inputLayer[i]->wDeltaSum.assign(inputLayer[i]->wDeltaSum.size(), 0.f);
-        }
+        error = 0.f; //重置
 
-        for (int i = 0; i < hidelayer; i++) { // 隐含层数
-            for (int j = 0; j < hidenode; j++) { //隐含层的节点数
-                hiddenLayer[i][j]->wDeltaSum.assign(hiddenLayer[i][j]->wDeltaSum.size(), 0.f);
-                hiddenLayer[i][j]->bDeltaSum = 0.f;
-            }
-        }
-        for (int i = 0; i < outnode; i++) {
-            outputLayer[i]->bDeltaSum = 0.f;
-        }
+        // 初始化 delta sum
+        initDeltaSum();
 
+        // 计算网络传播
         for (int iter = 0; iter < sampleNum; iter++) {
             setInput(sampleGroup[iter].in);
             setOutput(sampleGroup[iter].out);
@@ -201,46 +236,26 @@ void BpNet::training( vector<sample> sampleGroup, double threshold)
             forwardPropagationEpoc();
             backPropagationEpoc();
         }
-//******************************************************************************************************
-        // backward propagation on 【input】 layer
-        // -- update weight
-        for (int i = 0; i < innode; i++) {
-            for (int j = 0; j < hidenode; j++) {
-                inputLayer[i]->weight[j] -= learningRate * inputLayer[i]->wDeltaSum[j] / sampleNum;
-            }
+
+        // 参数更新
+        update(sampleNum);
+    }
+}
+
+void BpNet::initDeltaSum() {
+    for (int i = 0; i < innode; i++) {
+        inputLayer[i]->wDeltaSum.assign(inputLayer[i]->wDeltaSum.size(), 0.f);
+    }
+
+    for (int i = 0; i < hidelayer; i++) { // 隐含层数
+        for (int j = 0; j < hidenode; j++) { //隐含层的节点数
+            hiddenLayer[i][j]->wDeltaSum.assign(hiddenLayer[i][j]->wDeltaSum.size(), 0.f);
+            hiddenLayer[i][j]->bDeltaSum = 0.f;
         }
+    }
 
-        // backward propagation on 【hidden】 layer
-        // -- update weight & bias
-        for (int i = 0; i < hidelayer; i++) {
-            if (i == hidelayer - 1) {
-                for (int j = 0; j < hidenode; j++) {
-                    // bias
-                    hiddenLayer[i][j]->bias -= learningRate * hiddenLayer[i][j]->bDeltaSum / sampleNum;
-
-                    // weight
-                    for (int k = 0; k < outnode; k++) {
-                        hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum;
-                    }
-                }
-            } else {
-                for (int j = 0; j < hidenode; j++) {
-                    // bias
-                    hiddenLayer[i][j]->bias -= learningRate * hiddenLayer[i][j]->bDeltaSum / sampleNum;
-
-                    // weight
-                    for (int k = 0; k < hidenode; k++) {
-                        hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum;
-                    }
-                }
-            }
-        }
-
-        // backward propagation on 【output】 layer
-        // -- update bias
-        for (int i = 0; i < outnode; i++) {
-            outputLayer[i]->bias -= learningRate * outputLayer[i]->bDeltaSum / sampleNum;
-        }
+    for (int i = 0; i < outnode; i++) {
+        outputLayer[i]->bDeltaSum = 0.f;
     }
 }
 

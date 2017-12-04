@@ -71,6 +71,8 @@ public:
 
     void training ( vector<sample> sampleGroup, double threshold);// 更新 weight, bias
     void predict  (vector<sample>& testGroup);                    // 神经网络预测
+    void update   (int sampleNum);                                // 更新参数
+    void initDeltaSum();
 
     void setInput ( vector<double> sampleIn);  // 设置学习样本输入
     void setOutput( vector<double> sampleOut); // 设置学习样本输出
