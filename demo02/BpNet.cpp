@@ -23,10 +23,8 @@ BpNet::BpNet()
     }
 
     // 初始化隐藏层
-    for (int i = 0; i < hidelayer; i++)
-    {
-        if (i == hidelayer - 1)
-        {
+    for (int i = 0; i < hidelayer; i++) {
+        if (i == hidelayer - 1) {
             for (int j = 0; j < hidenode; j++)
             {
                 hiddenLayer[i][j] = new hiddenNode();
@@ -37,11 +35,8 @@ BpNet::BpNet()
                     hiddenLayer[i][j]->wDeltaSum.push_back(0.f);
                 }
             }
-        }
-        else
-        {
-            for (int j = 0; j < hidenode; j++)
-            {
+        } else {
+            for (int j = 0; j < hidenode; j++) {
                 hiddenLayer[i][j] = new hiddenNode();
                 hiddenLayer[i][j]->bias = get_11Random();
                 for (int k = 0; k < hidenode; k++) {hiddenLayer[i][j]->weight.push_back(get_11Random());}
@@ -50,131 +45,133 @@ BpNet::BpNet()
     }
 
     // 初始化输出层
-    for (int i = 0; i < outnode; i++)
-    {
+    for (int i = 0; i < outnode; i++) {
         outputLayer[i] = new outputNode();
         outputLayer[i]->bias = get_11Random();
     }
 }
 
-void BpNet::forwardPropagationEpoc()
-{
-    // forward propagation on hidden layer
-    for (int i = 0; i < hidelayer; i++)
-    {
-        if (i == 0)
-        {
+// inputLayer -> hiddenLayer -> outputLayer
+// 算得：value
+void BpNet::forwardPropagationEpoc() {
+    // forward propagation on 【hidden layer】
+    for (int i = 0; i < hidelayer; i++) {
+        if (i == 0) { // 第1个隐含层
             for (int j = 0; j < hidenode; j++) {
                 double sum = 0.f;
+                //输入来源与输出层
                 for (int k = 0; k < innode; k++) {
                     sum += inputLayer[k]->value * inputLayer[k]->weight[j];
                 }
                 sum += hiddenLayer[i][j]->bias;
+
+                //--
                 hiddenLayer[i][j]->value = sigmoid(sum); //第i隐含层， 第j个节点
             }
-        }
-        else
-        {
-            for (int j = 0; j < hidenode; j++)
-            {
+        } else {
+            for (int j = 0; j < hidenode; j++) {
                 double sum = 0.f;
-                for (int k = 0; k < hidenode; k++)
-                {
+                // 输入来源与上一个隐含层
+                for (int k = 0; k < hidenode; k++) {
                     sum += hiddenLayer[i-1][k]->value * hiddenLayer[i-1][k]->weight[j];
                 }
                 sum += hiddenLayer[i][j]->bias;
+
+                //--
                 hiddenLayer[i][j]->value = sigmoid(sum);
             }
         }
     }
 
-    // forward propagation on output layer
-    for (int i = 0; i < outnode; i++)
-    {
+    // forward propagation on 【output layer】
+    for (int i = 0; i < outnode; i++) {
         double sum = 0.f;
-        for (int j = 0; j < hidenode; j++)
-        {
+        for (int j = 0; j < hidenode; j++) {
             sum += hiddenLayer[hidelayer-1][j]->value * hiddenLayer[hidelayer-1][j]->weight[i];
         }
         sum += outputLayer[i]->bias;
+
+        //--
         outputLayer[i]->value = sigmoid(sum);
     }
 }
 
+// outputLayer -> hiddenLayer -> inputLayer
+// 算得： delta
 void BpNet::backPropagationEpoc()
 {
-    // backward propagation on output layer
+    // backward propagation on 【output layer】
     // -- compute delta
-    for (int i = 0; i < outnode; i++)
-    {
-        double tmpe = fabs(outputLayer[i]->value-outputLayer[i]->rightout);
-        error += tmpe * tmpe / 2;
+    for (int i = 0; i < outnode; i++) {
+        double temp = fabs(outputLayer[i]->value - outputLayer[i]->rightout);
+        error += temp * temp / 2;
 
-        outputLayer[i]->delta
-                = (outputLayer[i]->value-outputLayer[i]->rightout)*(1-outputLayer[i]->value)*outputLayer[i]->value;
+        outputLayer[i]->delta =
+                (outputLayer[i]->value - outputLayer[i]->rightout)
+                  * (1-outputLayer[i]->value)
+                  * outputLayer[i]->value;
     }
 
-    // backward propagation on hidden layer
+    // backward propagation on 【hidden layer】
     // -- compute delta
-    for (int i = hidelayer - 1; i >= 0; i--)    // 反向计算
-    {
-        if (i == hidelayer - 1)
-        {
-            for (int j = 0; j < hidenode; j++)
-            {
+    for (int i = hidelayer - 1; i >= 0; i--) {
+        if (i == hidelayer - 1) {
+            for (int j = 0; j < hidenode; j++) {
                 double sum = 0.f;
-                for (int k=0; k<outnode; k++){sum += outputLayer[k]->delta * hiddenLayer[i][j]->weight[k];}
+                for (int k=0; k<outnode; k++) {
+                    sum += outputLayer[k]->delta * hiddenLayer[i][j]->weight[k];
+                }
+
+                //Sigmoid ：f(x) = 1/(1+e^(-x)) 函数的导数的简单算法： f'(x)=f(x)*[1-f(x)].
+                hiddenLayer[i][j]->delta = sum * (1 - hiddenLayer[i][j]->value) * hiddenLayer[i][j]->value;
+            }
+        } else {
+            for (int j = 0; j < hidenode; j++) {
+                double sum = 0.f;
+                for (int k=0; k<hidenode; k++) {
+                    sum += hiddenLayer[i + 1][k]->delta * hiddenLayer[i][j]->weight[k];
+                }
+
+                //--
                 hiddenLayer[i][j]->delta = sum * (1 - hiddenLayer[i][j]->value) * hiddenLayer[i][j]->value;
             }
         }
-        else
-        {
-            for (int j = 0; j < hidenode; j++)
-            {
-                double sum = 0.f;
-                for (int k=0; k<hidenode; k++){sum += hiddenLayer[i + 1][k]->delta * hiddenLayer[i][j]->weight[k];}
-                hiddenLayer[i][j]->delta = sum * (1 - hiddenLayer[i][j]->value) * hiddenLayer[i][j]->value;
-            }
-        }
     }
 
-    // backward propagation on input layer
+    // backward propagation on 【input layer】
     // -- update weight delta sum
-    for (int i = 0; i < innode; i++)
-    {
-        for (int j = 0; j < hidenode; j++)
-        {
+    for (int i = 0; i < innode; i++) {
+        for (int j = 0; j < hidenode; j++) {
             inputLayer[i]->wDeltaSum[j] += inputLayer[i]->value * hiddenLayer[0][j]->delta;
         }
     }
 
-    // backward propagation on hidden layer
+//*****************************************************************************************************************
+    // backward propagation on 【hidden layer】
     // -- update weight delta sum & bias delta sum
-    for (int i = 0; i < hidelayer; i++)
-    {
-        if (i == hidelayer - 1)
-        {
-            for (int j = 0; j < hidenode; j++)
-            {
+    for (int i = 0; i < hidelayer; i++) {
+        if (i == hidelayer - 1) {
+            for (int j = 0; j < hidenode; j++) {
                 hiddenLayer[i][j]->bDeltaSum += hiddenLayer[i][j]->delta;
-                for (int k = 0; k < outnode; k++)
-                { hiddenLayer[i][j]->wDeltaSum[k] += hiddenLayer[i][j]->value * outputLayer[k]->delta; }
+                for (int k = 0; k < outnode; k++) {
+                    hiddenLayer[i][j]->wDeltaSum[k] += hiddenLayer[i][j]->value * outputLayer[k]->delta;
+                }
             }
-        }
-        else
-        {
-            for (int j = 0; j < hidenode; j++)
-            {
+        } else {
+            for (int j = 0; j < hidenode; j++) {
                 hiddenLayer[i][j]->bDeltaSum += hiddenLayer[i][j]->delta;
-                for (int k = 0; k < hidenode; k++)
-                { hiddenLayer[i][j]->wDeltaSum[k] += hiddenLayer[i][j]->value * hiddenLayer[i+1][k]->delta; }
+                for (int k = 0; k < hidenode; k++) {
+                    hiddenLayer[i][j]->wDeltaSum[k] += hiddenLayer[i][j]->value * hiddenLayer[i+1][k]->delta;
+                }
             }
         }
     }
 
-    // backward propagation on output layer
+    // backward propagation on 【output layer】
     // -- update bias delta sum
-    for (int i = 0; i < outnode; i++) outputLayer[i]->bDeltaSum += outputLayer[i]->delta;
+    for (int i = 0; i < outnode; i++) {
+        outputLayer[i]->bDeltaSum += outputLayer[i]->delta;
+    }
 }
 
 void BpNet::training( vector<sample> sampleGroup, double threshold)
@@ -208,7 +205,7 @@ void BpNet::training( vector<sample> sampleGroup, double threshold)
             forwardPropagationEpoc();
             backPropagationEpoc();
         }
-
+//******************************************************************************************************
         // backward propagation on 【input】 layer
         // -- update weight
         for (int i = 0; i < innode; i++) {
@@ -226,18 +223,19 @@ void BpNet::training( vector<sample> sampleGroup, double threshold)
                     hiddenLayer[i][j]->bias -= learningRate * hiddenLayer[i][j]->bDeltaSum / sampleNum;
 
                     // weight
-                    for (int k = 0; k < outnode; k++)
-                    { hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum; }
+                    for (int k = 0; k < outnode; k++) {
+                        hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum;
+                    }
                 }
-            }
-            else {
+            } else {
                 for (int j = 0; j < hidenode; j++) {
                     // bias
                     hiddenLayer[i][j]->bias -= learningRate * hiddenLayer[i][j]->bDeltaSum / sampleNum;
 
                     // weight
                     for (int k = 0; k < hidenode; k++) {
-                        hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum; }
+                        hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum;
+                    }
                 }
             }
         }
