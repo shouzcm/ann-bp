@@ -39,7 +39,7 @@ typedef struct tag_inputNode {
 // 输出层节点
 typedef struct tag_outputNode {
     double value;     //节点当前值
-    double delta;     //与正确输出值之间的delta值
+    double delta;     //与正确输出值之间的delta值 (调整量)
     double rightout;  //正确输出值
     double bias;      //偏移量
     double bDeltaSum; //bias的delta值的累积，每个节点一个
@@ -48,7 +48,7 @@ typedef struct tag_outputNode {
 // 隐含层节点
 typedef struct tag_hiddenNode {
     double value;             //节点当前值
-    double delta;             //BP推导出的delta值
+    double delta;             //BP推导出的delta值 (调整量)
     double bias;              //偏移量
     double bDeltaSum;         //bias的delta值的累积，每个节点一个
     vector<double> weight;    //面对下一层（隐含层/输出层）每个节点都有权值

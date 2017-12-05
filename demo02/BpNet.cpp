@@ -8,7 +8,7 @@ using namespace std;
 
 BpNet::BpNet()
 {
-    srand((unsigned)time(NULL));        // 随机数种子
+    //srand((unsigned)time(NULL));        // 随机数种子
     error = 100.f;                      // error初始值，极大值即可
 
     // 初始化输入层
@@ -93,8 +93,7 @@ void BpNet::forwardPropagationEpoc() {
 }
 
 // outputLayer -> hiddenLayer -> inputLayer
-// 算得： delta
-// 更新：DeltaSum, error
+// 算得： delta, deltaSum, error
 void BpNet::backPropagationEpoc()
 {
     // backward propagation on 【output layer】
@@ -103,16 +102,15 @@ void BpNet::backPropagationEpoc()
         double temp = fabs(outputLayer[i]->value - outputLayer[i]->rightout);
         error += temp * temp / 2;
 
-        outputLayer[i]->delta =
-                (outputLayer[i]->value - outputLayer[i]->rightout)
-                  * (1-outputLayer[i]->value)
-                  * outputLayer[i]->value;
+        double loss = outputLayer[i]->value - outputLayer[i]->rightout;
+        outputLayer[i]->delta = loss * (1-outputLayer[i]->value) * outputLayer[i]->value;
     }
 
     // backward propagation on 【hidden layer】
     // -- compute delta
     for (int i = hidelayer - 1; i >= 0; i--) {
         if (i == hidelayer - 1) {
+
             for (int j = 0; j < hidenode; j++) {
                 double sum = 0.f;
                 for (int k=0; k<outnode; k++) {
@@ -135,6 +133,7 @@ void BpNet::backPropagationEpoc()
         }
     }
 
+//*****************************************************************************************************************
     // backward propagation on 【input layer】
     // -- update weight delta sum
     for (int i = 0; i < innode; i++) {
@@ -143,7 +142,6 @@ void BpNet::backPropagationEpoc()
         }
     }
 
-//*****************************************************************************************************************
     // backward propagation on 【hidden layer】
     // -- update weight delta sum & bias delta sum
     for (int i = 0; i < hidelayer; i++) {
@@ -171,9 +169,9 @@ void BpNet::backPropagationEpoc()
     }
 }
 
-
+// 根据 wDeltaSum 进行调整
 void BpNet::update(int sampleNum) {
-    // backward propagation on 【input】 layer
+    // backward propagation on 【input layer】
     // -- update weight
     for (int i = 0; i < innode; i++) {
         for (int j = 0; j < hidenode; j++) {
@@ -181,33 +179,26 @@ void BpNet::update(int sampleNum) {
         }
     }
 
-    // backward propagation on 【hidden】 layer
+    // backward propagation on 【hidden layer】
     // -- update weight & bias
-    for (int i = 0; i < hidelayer; i++) {
-        if (i == hidelayer - 1) {
-            for (int j = 0; j < hidenode; j++) {
-                // bias
-                hiddenLayer[i][j]->bias -= learningRate * hiddenLayer[i][j]->bDeltaSum / sampleNum;
+    for (int i = 0; i < hidelayer; i++) { //遍历隐藏层
+        int nextLayerNode = hidenode;
+        if (i == hidelayer - 1) { //最后一层隐藏层
+            nextLayerNode = outnode;
+        }
 
-                // weight
-                for (int k = 0; k < outnode; k++) {
-                    hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum;
-                }
-            }
-        } else {
-            for (int j = 0; j < hidenode; j++) {
-                // bias
-                hiddenLayer[i][j]->bias -= learningRate * hiddenLayer[i][j]->bDeltaSum / sampleNum;
+        for (int j = 0; j < hidenode; j++) { //遍历层内节点
+            // bias
+            hiddenLayer[i][j]->bias -= learningRate * hiddenLayer[i][j]->bDeltaSum / sampleNum;
 
-                // weight
-                for (int k = 0; k < hidenode; k++) {
-                    hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum;
-                }
+            // weight
+            for (int k = 0; k < nextLayerNode; k++) { // 计算它到下一层每个节点的weight
+                hiddenLayer[i][j]->weight[k] -= learningRate * hiddenLayer[i][j]->wDeltaSum[k] / sampleNum;
             }
         }
     }
 
-    // backward propagation on 【output】 layer
+    // backward propagation on 【output layer】
     // -- update bias
     for (int i = 0; i < outnode; i++) {
         outputLayer[i]->bias -= learningRate * outputLayer[i]->bDeltaSum / sampleNum;
@@ -219,10 +210,12 @@ void BpNet::update(int sampleNum) {
 void BpNet::training( vector<sample> sampleGroup, double threshold)
 {
     int sampleNum = sampleGroup.size();
+    int trainingTime = 0;
 
     //for (int curTrainingTime = 0; curTrainingTime < trainingTime; curTrainingTime++)
     while(error > threshold) {
-        cout << "training error: " << error << endl;
+        trainingTime++;
+        cout <<"--"<<trainingTime <<"--training error: " << error << endl;
         error = 0.f; //重置
 
         // 初始化 delta sum
