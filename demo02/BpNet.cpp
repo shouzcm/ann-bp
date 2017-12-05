@@ -99,10 +99,9 @@ void BpNet::backPropagationEpoc()
     // backward propagation on 【output layer】
     // -- compute delta
     for (int i = 0; i < outnode; i++) {
-        double temp = fabs(outputLayer[i]->value - outputLayer[i]->rightout);
-        error += temp * temp / 2;
-
         double loss = outputLayer[i]->value - outputLayer[i]->rightout;
+        double temp = fabs(loss);
+        error += temp * temp / 2;
         outputLayer[i]->delta = loss * (1-outputLayer[i]->value) * outputLayer[i]->value;
     }
 
